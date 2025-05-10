@@ -1,0 +1,6 @@
+Collecting Pillow
+  Downloading pillow-11.2.1-cp312-cp312-win_amd64.whl.metadata (9.1 kB)
+Downloading pillow-11.2.1-cp312-cp312-win_amd64.whl (2.7 MB)
+   ---------------------------------------- 2.7/2.7 MB 2.2 MB/s eta 0:00:00
+Installing collected packages: Pillow
+Successfully installed Pillow-11.2.1

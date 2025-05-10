@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction Result - Banana Wilt Detection</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            background-color: #f0f4f8; /* Consistent with home */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding-top: 20px;
+            padding-bottom: 40px; /* More space at bottom */
+        }
+        .navbar-brand {
+            font-weight: bold;
+        }
+        .result-page-container {
+            max-width: 800px; /* Wider container for results */
+            margin: 0 auto;
+        }
+        .result-card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+            padding: 25px 30px; /* Adjusted padding */
+            margin-top: 20px;
+        }
+        .result-header {
+            font-size: 1.75rem; /* Slightly larger header */
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .result-image-wrapper {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .result-image {
+            border-radius: 8px; /* Softer radius */
+            max-height: 380px;
+            max-width: 100%;
+            object-fit: contain;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .result-label {
+            font-size: 1.8rem; /* Larger label */
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .healthy { color: #28a745; }
+        .infected { color: #dc3545; }
+        .invalid { color: #6c757d; }
+        .uncertain { color: #ffc107; }
+        .error-label { color: #dc3545; }
+
+        .sub-text { /* For text below the main label */
+            font-size: 1.1rem;
+            color: #555;
+            margin-bottom: 20px;
+        }
+
+        .confidence-bar-container {
+            margin-top: 15px;
+            margin-bottom: 25px;
+        }
+        .confidence-bar {
+            height: 22px;
+            border-radius: 10px;
+            background-color: #e9ecef; /* Lighter background for progress bar */
+        }
+        .progress-bar {
+            font-weight: 500;
+        }
+        
+        .explanation-container {
+            background-color: #f8f9fa; /* Light gray for explanation */
+            border-left: 4px solid #0dcaf0; /* Info blue accent */
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-top: 20px;
+            font-size: 0.95rem;
+        }
+        .explanation-container h5 {
+            color: #0dcaf0;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .navigation-btns {
+            margin-top: 30px;
+        }
+        .btn-dashboard {
+            font-weight: 500;
+        }
+        .navbar { margin-bottom: 20px; } /* To prevent content from hiding under sticky nav */
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}"><i class="fas fa-leaf me-2"></i>Banana Wilt Detection</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <span class="navbar-text text-light me-3">Welcome, {{ user_full_name }}</span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container result-page-container">
+        <div class="result-card">
+            <h1 class="text-center result-header">Analysis Result</h1>
+
+            {% if error_message and not is_banana_leaf %}
+                <div class="text-center">
+                    {% if filename %}
+                    <div class="result-image-wrapper">
+                        <img src="{{ url_for('static', filename='uploads/' + filename) }}" class="result-image" alt="Uploaded image">
+                    </div>
+                    {% endif %}
+                    <div class="result-label invalid mt-3">Analysis Issue</div>
+                    <p class="lead text-muted">{{ error_message }}</p>
+                </div>
+            {% elif label == "Error" %}
+                 <div class="text-center">
+                    {% if filename %}
+                    <div class="result-image-wrapper">
+                        <img src="{{ url_for('static', filename='uploads/' + filename) }}" class="result-image" alt="Uploaded image">
+                    </div>
+                    {% endif %}
+                    <div class="result-label error-label mt-3">Analysis Error</div>
+                    <p class="lead text-danger">{{ explanation or "An unexpected error occurred during analysis." }}</p>
+                </div>
+            {% else %}
+                <!-- Valid analysis -->
+                <div class="row align-items-center">
+                    <div class="col-md-5 result-image-wrapper">
+                        <img src="{{ url_for('static', filename='uploads/' + filename) }}" class="result-image" alt="Analyzed Banana Leaf">
+                    </div>
+                    <div class="col-md-7">
+                        {% if label == "Healthy" %}
+                            <div class="result-label healthy"><i class="fas fa-check-circle me-2"></i>{{ label }}</div>
+                            <p class="sub-text text-success">This banana leaf appears to be healthy!</p>
+                        {% elif label == "Wilt-Affected" %}
+                            <div class="result-label infected"><i class="fas fa-exclamation-triangle me-2"></i>{{ label }}</div>
+                            <p class="sub-text text-danger">This banana leaf shows signs of Banana Wilt disease.</p>
+                        {% elif label == "Invalid" %}
+                             <div class="result-label invalid"><i class="fas fa-times-circle me-2"></i>{{ label }} Image</div>
+                             <p class="sub-text text-muted">The uploaded image does not appear to be a banana leaf.</p>
+                        {% else %} <!-- Uncertain -->
+                            <div class="result-label uncertain"><i class="fas fa-question-circle me-2"></i>{{ label }}</div>
+                            <p class="sub-text text-warning">The AI analysis was inconclusive. Please try a clearer image.</p>
+                        {% endif %}
+
+                        {% if confidence and label not in ["Invalid", "Error"] %}
+                            <div class="confidence-bar-container">
+                                <p class="mb-1 small text-muted">AI Confidence: {{ confidence|round(1) }}%</p>
+                                <div class="progress confidence-bar">
+                                    <div class="progress-bar 
+                                        {% if label == 'Healthy' %}bg-success
+                                        {% elif label == 'Wilt-Affected' %}bg-danger
+                                        {% elif label == 'Uncertain' %}bg-warning
+                                        {% else %}bg-secondary{% endif %}" 
+                                        role="progressbar" 
+                                        style="width: {{ confidence }}%" 
+                                        aria-valuenow="{{ confidence }}" 
+                                        aria-valuemin="0" 
+                                        aria-valuemax="100">
+                                        {{ confidence|round(1) }}%
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if explanation and label not in ["Invalid", "Error"] %}
+                    <div class="explanation-container mt-4">
+                        <h5><i class="fas fa-info-circle me-1"></i>AI Note:</h5>
+                        <p class="mb-0">{{ explanation }}</p>
+                    </div>
+                {% endif %}
+                 <!-- Recommendations (Tips) section removed -->
+            {% endif %}
+
+            <div class="navigation-btns text-center mt-4">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg btn-dashboard"><i class="fas fa-arrow-left me-2"></i>Back to Dashboard</a>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

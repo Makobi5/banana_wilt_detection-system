@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banana Wilt Detection - Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            background-color: #f0f4f8; /* Lighter blue-ish gray background */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar-brand {
+            font-weight: bold;
+        }
+        .hero-section {
+            background: linear-gradient(135deg, #56ab2f, #a8e063); /* Keep gradient */
+            color: white;
+            padding: 50px 0; /* Slightly reduced padding */
+            margin-bottom: 30px;
+            border-radius: 0 0 15px 15px; /* Softer radius */
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .hero-section h1 {
+            font-weight: 600;
+        }
+        .analysis-container { /* Renamed from upload-container */
+            background-color: white;
+            border-radius: 12px; /* Softer radius */
+            box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+            padding: 30px;
+            margin-bottom: 30px;
+            transition: transform 0.2s ease-in-out;
+        }
+        .analysis-container:hover {
+            transform: translateY(-3px);
+        }
+        .upload-area {
+            border: 2px dashed #c5d9e8; /* Softer dashed border */
+            border-radius: 8px;
+            padding: 40px 20px; /* Adjusted padding */
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: #f8fafc;
+        }
+        .upload-area:hover {
+            border-color: #28a745; /* Green on hover */
+            background-color: #e9f5ee;
+        }
+        .upload-icon, .camera-icon-btn { /* Styles for icons in buttons/areas */
+            font-size: 3rem; /* Larger icons */
+            color: #28a745; /* Green color for icons */
+            margin-bottom: 10px;
+        }
+        .upload-area h4 {
+            font-weight: 500;
+            color: #333;
+        }
+        .preview-image, #captured-image-preview {
+            max-height: 180px; /* Slightly smaller preview */
+            max-width: 100%;
+            border-radius: 5px;
+            display: none;
+            margin: 15px auto 0 auto; /* Center preview */
+            border: 1px solid #e0e0e0;
+            object-fit: cover;
+        }
+        .footer {
+            background-color: #343a40;
+            color: #adb5bd; /* Lighter footer text */
+            padding: 25px 0;
+            margin-top: auto; /* Pushes footer to bottom if content is short */
+        }
+        #file-name {
+            display: none;
+            margin-top: 10px;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .camera-modal-content { text-align: center; }
+        #camera-stream {
+            width: 100%;
+            max-width: 500px;
+            height: auto;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            background-color: #212529; /* Dark background for video */
+        }
+        #camera-error { color: #dc3545; margin-top: 10px; font-weight: 500; }
+        .loading-spinner {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            z-index: 1060; /* Higher than modal */
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-action { /* Common style for analyze/open camera buttons */
+            font-weight: 500;
+            padding: 10px 25px;
+            border-radius: 6px;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .btn-action:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .container-wrapper { /* To help with footer positioning */
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .main-content {
+            flex-grow: 1;
+        }
+    </style>
+</head>
+<body>
+<div class="container-wrapper">
+    <div class="loading-spinner" id="loading-spinner">
+        <div class="spinner-border text-success" role="status" style="width: 3.5rem; height: 3.5rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}"><i class="fas fa-leaf me-2"></i>Banana Wilt Detection</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <span class="navbar-text text-light me-3">Welcome, {{ user_full_name }}</span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('dashboard') }}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+<div class="main-content">
+    <section class="hero-section">
+        <div class="container text-center">
+            <h1>Banana Leaf Health Analyzer</h1>
+            <p class="lead">Upload an image or use your camera to detect signs of Banana Wilt disease.</p>
+        </div>
+    </section>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="row mb-4 justify-content-center">
+            <!-- Upload Section -->
+            <div class="col-lg-5 mb-4 mb-lg-0">
+                <div class="analysis-container h-100 d-flex flex-column">
+                    <h2 class="text-center mb-4">Upload Image</h2>
+                    <form action="{{ url_for('predict') }}" method="post" enctype="multipart/form-data" id="upload-form" class="flex-grow-1 d-flex flex-column">
+                        <div class="upload-area flex-grow-1 d-flex flex-column justify-content-center align-items-center" id="upload-area" onclick="document.getElementById('image').click()">
+                            <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                            <h4>Click or drag image here</h4>
+                            <p class="text-muted small">Supports: JPG, JPEG, PNG</p>
+                            <input type="file" name="image" id="image" accept="image/*" style="display: none;" required onchange="previewImage(this)">
+                            <img id="image-preview" class="preview-image" src="#" alt="Preview">
+                            <div id="file-name"></div>
+                        </div>
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-success btn-action btn-lg"><i class="fas fa-search me-2"></i>Analyze Upload</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Camera Section -->
+            <div class="col-lg-5">
+                <div class="analysis-container h-100 d-flex flex-column justify-content-center">
+                    <h2 class="text-center mb-4">Use Camera</h2>
+                     <div class="text-center">
+                        <button type="button" class="btn btn-primary btn-action btn-lg" data-bs-toggle="modal" data-bs-target="#cameraModal">
+                            <i class="fas fa-camera-retro me-2"></i>Open Camera
+                        </button>
+                        <img id="captured-image-preview" class="preview-image mx-auto" src="#" alt="Captured Preview">
+                        <div id="camera-form-container" style="display: none;" class="mt-3">
+                             <input type="hidden" name="image_data" id="camera_image_data">
+                             <button type="button" id="analyze-captured-btn" class="btn btn-success btn-action btn-lg"><i class="fas fa-search me-2"></i>Analyze Capture</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Info Cards Section Removed -->
+    </div>
+</div><!-- main-content end -->
+    <footer class="footer">
+        <div class="container text-center">
+            <!-- This will now work because SCRIPT_LOAD_TIME is passed from Flask -->
+            <p class="mb-0">© {{ SCRIPT_LOAD_TIME.year }} Banana Wilt Detection - AI Powered Analysis</p>
+        </div>
+    </footer>
+
+</div> <!-- container-wrapper end -->
+
+    <!-- Camera Modal -->
+    <div class="modal fade" id="cameraModal" tabindex="-1" aria-labelledby="cameraModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content camera-modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cameraModalLabel"><i class="fas fa-camera me-2"></i>Take a Photo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="camera-modal-close-btn"></button>
+                </div>
+                <div class="modal-body">
+                    <video id="camera-stream" autoplay playsinline muted></video>
+                    <!-- Removed the stray comment from here -->
+                    <canvas id="photo-canvas" style="display:none;"></canvas>
+                    <p id="camera-error" class="mt-2" style="display:none;"></p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary mx-2" data-bs-dismiss="modal" id="camera-modal-close-footer-btn">Close</button>
+                    <button type="button" class="btn btn-primary mx-2" id="capture-btn"><i class="fas fa-camera-retro me-1"></i>Capture Photo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const cameraStreamElement = document.getElementById('camera-stream');
+        const photoCanvasElement = document.getElementById('photo-canvas');
+        const captureBtn = document.getElementById('capture-btn');
+        const cameraErrorElement = document.getElementById('camera-error');
+        const capturedImagePreview = document.getElementById('captured-image-preview');
+        const cameraImageDataInput = document.getElementById('camera_image_data');
+        const cameraFormContainer = document.getElementById('camera-form-container');
+        const analyzeCapturedBtn = document.getElementById('analyze-captured-btn');
+        const cameraModalElement = document.getElementById('cameraModal');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        let currentStream;
+        let cameraModalInstance;
+
+        // Add SCRIPT_LOAD_TIME for footer year (if not already available from Flask)
+        if (typeof SCRIPT_LOAD_TIME === 'undefined') {
+            const SCRIPT_LOAD_TIME = new Date(); // Fallback if not passed from Flask
+        }
+
+
+        if (cameraModalElement) {
+            cameraModalInstance = new bootstrap.Modal(cameraModalElement);
+
+            // Ensure camera stops when modal is closed by any means
+            cameraModalElement.addEventListener('hidden.bs.modal', stopCameraStream);
+            document.getElementById('camera-modal-close-btn').addEventListener('click', stopCameraStream);
+            document.getElementById('camera-modal-close-footer-btn').addEventListener('click', stopCameraStream);
+
+            cameraModalElement.addEventListener('shown.bs.modal', async () => {
+                cameraErrorElement.style.display = 'none';
+                cameraErrorElement.textContent = '';
+                captureBtn.disabled = true;
+                analyzeCapturedBtn.style.display = 'none'; // Hide analyze button initially
+                capturedImagePreview.style.display = 'none'; // Hide preview initially
+
+                try {
+                    if (currentStream) { // Stop any existing stream
+                        currentStream.getTracks().forEach(track => track.stop());
+                    }
+                    // Try rear camera first, then any camera
+                    const constraints = [
+                        { video: { facingMode: { exact: "environment" } } },
+                        { video: true }
+                    ];
+
+                    for (const constraint of constraints) {
+                        try {
+                            currentStream = await navigator.mediaDevices.getUserMedia(constraint);
+                            break; // Success
+                        } catch (e) {
+                            console.warn(`Failed to get camera with constraint: ${JSON.stringify(constraint)}`, e.name, e.message);
+                        }
+                    }
+                    
+                    if (!currentStream) {
+                        throw new Error("No suitable camera found or permission denied.");
+                    }
+
+                    cameraStreamElement.srcObject = currentStream;
+                    await cameraStreamElement.play(); // Wait for play to resolve
+                    captureBtn.disabled = false;
+                    cameraStreamElement.style.display = 'block'; // Ensure video element is visible
+
+                } catch (err) {
+                    console.error("Error accessing camera: ", err);
+                    let errorMsg = "Could not access camera. ";
+                    if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+                        errorMsg += "Please grant camera permission in your browser settings.";
+                    } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+                        errorMsg += "No camera found. Please ensure a camera is connected and enabled.";
+                    } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+                        errorMsg += "Camera might be in use by another application.";
+                    } else {
+                        errorMsg += "An unexpected error occurred: " + err.message;
+                    }
+                    cameraErrorElement.textContent = errorMsg;
+                    cameraErrorElement.style.display = 'block';
+                    cameraStreamElement.style.display = 'none'; // Hide video element on error
+                    captureBtn.disabled = true;
+                }
+            });
+        }
+
+
+        function stopCameraStream() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                console.log("Camera stream stopped.");
+            }
+            currentStream = null;
+            if(cameraStreamElement) cameraStreamElement.srcObject = null; // Clear srcObject
+        }
+
+
+        captureBtn.addEventListener('click', () => {
+            if (!currentStream || cameraStreamElement.readyState < HTMLMediaElement.HAVE_METADATA || cameraStreamElement.videoWidth === 0) {
+                cameraErrorElement.textContent = "Camera stream not ready or active. Please try opening the camera again.";
+                cameraErrorElement.style.display = 'block';
+                return;
+            }
+            const context = photoCanvasElement.getContext('2d');
+            photoCanvasElement.width = cameraStreamElement.videoWidth;
+            photoCanvasElement.height = cameraStreamElement.videoHeight;
+            context.drawImage(cameraStreamElement, 0, 0, photoCanvasElement.width, photoCanvasElement.height);
+            
+            const imageDataURL = photoCanvasElement.toDataURL('image/jpeg', 0.85); // Quality 0.85
+            
+            capturedImagePreview.src = imageDataURL;
+            capturedImagePreview.style.display = 'block';
+            cameraImageDataInput.value = imageDataURL;
+            cameraFormContainer.style.display = 'block'; // Show container for analyze button
+            analyzeCapturedBtn.style.display = 'inline-block'; // Show analyze button
+            
+            // Stop stream after capture and hide modal
+            stopCameraStream();
+            if (cameraModalInstance) {
+                cameraModalInstance.hide();
+            }
+        });
+
+        analyzeCapturedBtn.addEventListener('click', async function() {
+            const imageData = cameraImageDataInput.value;
+            if (!imageData) {
+                alert("No image captured to analyze.");
+                return;
+            }
+
+            loadingSpinner.style.display = 'flex';
+            analyzeCapturedBtn.disabled = true;
+            analyzeCapturedBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Analyzing...';
+
+            try {
+                const response = await fetch("{{ url_for('predict_camera') }}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'text/html, application/json' },
+                    body: JSON.stringify({ image_data: imageData })
+                });
+
+                const contentType = response.headers.get("content-type");
+
+                if (response.ok) {
+                    if (contentType && contentType.includes("text/html")) {
+                        const resultHtml = await response.text();
+                        document.open();
+                        document.write(resultHtml);
+                        document.close();
+                        return; 
+                    } else if (contentType && contentType.includes("application/json")) {
+                         const data = await response.json();
+                         if(data.status === "error_redirect" && data.url) {
+                            window.location.href = data.url; // Follow redirect
+                         } else {
+                            alert(`Error: ${data.error || "An unknown server error occurred."}`);
+                         }
+                    } else {
+                         alert("Received an unexpected response type from the server.");
+                    }
+                } else {
+                     // Handle HTTP errors (4xx, 5xx)
+                     let errorMsg = `Error ${response.status}: `;
+                     if (contentType && contentType.includes("application/json")) {
+                        const errorJson = await response.json();
+                        errorMsg += errorJson.error || "Server error occurred.";
+                     } else {
+                        errorMsg += await response.text() || "Server error occurred.";
+                     }
+                     alert(errorMsg);
+                }
+            } catch (error) {
+                console.error('Error submitting captured image:', error);
+                alert('An error occurred while sending the image. Please check your connection.');
+            } finally {
+                loadingSpinner.style.display = 'none';
+                analyzeCapturedBtn.disabled = false;
+                analyzeCapturedBtn.innerHTML = '<i class="fas fa-search me-2"></i>Analyze Capture';
+            }
+        });
+
+        function previewImage(input) {
+            const preview = document.getElementById('image-preview');
+            const fileNameDisplay = document.getElementById('file-name');
+            const uploadArea = document.getElementById('upload-area');
+            
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    fileNameDisplay.textContent = input.files[0].name;
+                    fileNameDisplay.style.display = 'block';
+                    // Adjust upload area to accommodate preview
+                    uploadArea.classList.add('has-preview');
+                    uploadArea.querySelector('h4').style.fontSize = '1.1rem';
+                    uploadArea.querySelector('p').style.display = 'none';
+                    uploadArea.querySelector('.upload-icon').style.fontSize = '2.5rem';
+
+                }
+                reader.readAsDataURL(input.files[0]);
+            } else { // No file selected or selection cleared
+                preview.style.display = 'none';
+                fileNameDisplay.style.display = 'none';
+                uploadArea.classList.remove('has-preview');
+                uploadArea.querySelector('h4').style.fontSize = '';
+                uploadArea.querySelector('p').style.display = '';
+                uploadArea.querySelector('.upload-icon').style.fontSize = '';
+            }
+        }
+        // Add current year to footer dynamically if not passed by Flask
+        document.addEventListener('DOMContentLoaded', () => {
+            const footerYear = document.querySelector('.footer p');
+            if (footerYear && !footerYear.textContent.includes(new Date().getFullYear())) {
+                 footerYear.textContent = `© ${new Date().getFullYear()} Banana Wilt Detection - AI Powered Analysis`;
+            }
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

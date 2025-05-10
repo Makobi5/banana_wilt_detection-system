@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register | Banana Wilt Detection</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* ... (your existing CSS from register.html) ... */
+        :root {
+            --primary-color: #4CAF50;
+            --secondary-color: #2E7D32;
+            --accent-color: #8BC34A;
+            --light-bg: #F1F8E9;
+            --dark-text: #2E2E2E;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            --success-color: #388E3C;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4efe9 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--dark-text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding-top: 2rem; /* Add some padding for scroll */
+            padding-bottom: 2rem;
+        }
+
+        .register-container {
+            max-width: 500px;
+            width: 100%;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .register-card {
+            border: none;
+            border-radius: 15px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow);
+            transition: transform 0.3s ease;
+        }
+
+        .register-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .register-header {
+            background: linear-gradient(to right, var(--success-color), var(--secondary-color));
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .register-header h2 {
+            font-weight: 700;
+            margin: 0;
+            position: relative;
+            display: inline-block;
+        }
+
+        .register-header h2::after {
+            content: '🌱';
+            position: absolute;
+            right: -40px;
+            top: 50%;
+            transform: translateY(-50%);
+            animation: grow 2s infinite;
+        }
+
+        .register-body {
+            padding: 2rem;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: var(--success-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px 15px;
+            transition: all 0.3s;
+            /* margin-bottom: 1rem; /* Bootstrap handles this with .mb-3 */
+        }
+
+        .form-control:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 0.25rem rgba(139, 195, 74, 0.25);
+        }
+        .form-control.is-invalid { /* Style for invalid fields */
+            border-color: #dc3545;
+        }
+/* Let Bootstrap handle the display of .invalid-feedback based on .is-invalid and .was-validated */
+/* If you need to customize its appearance when it IS visible, do it here */
+        .invalid-feedback {
+            /* color: #dc3545; (already default red) */
+            /* font-size: 0.875em; (already default) */
+        }
+
+
+        .btn-register {
+            background-color: var(--success-color);
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: white;
+            width: 100%;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            margin-top: 1rem;
+        }
+
+        .btn-register:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(56, 142, 60, 0.3);
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: var(--dark-text);
+        }
+
+        .login-link a {
+            color: var(--success-color);
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .login-link a:hover {
+            color: var(--primary-color);
+            text-decoration: underline;
+        }
+
+        .input-group-text {
+            background-color: var(--light-bg);
+            border: 2px solid #e0e0e0;
+            border-right: none;
+        }
+
+        .password-toggle {
+            cursor: pointer;
+            background-color: transparent;
+            border: 2px solid #e0e0e0;
+            border-left: none;
+            transition: all 0.3s;
+        }
+        
+        .password-toggle:hover {
+            background-color: var(--light-bg);
+        }
+        
+        .alert {
+            margin-bottom: 1rem;
+        }
+
+        @keyframes grow {
+            0%, 100% { transform: translateY(-50%) scale(1); }
+            50% { transform: translateY(-50%) scale(1.2); }
+        }
+
+        @media (max-width: 576px) {
+            .register-container {
+                padding: 0 15px;
+            }
+
+            .register-header h2::after {
+                right: -30px;
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container register-container">
+        <div class="card register-card shadow-lg">
+            <div class="register-header">
+                <h2 class="animate__animated animate__fadeInDown">Create Account</h2>
+            </div>
+            <div class="card-body register-body">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST" class="animate__animated animate__fadeIn animate__delay-1s needs-validation" novalidate id="registerForm">
+                    <div class="mb-3">
+                        <label for="full_name" class="form-label">Full Name</label>
+                        <div class="input-group has-validation">
+                            <span class="input-group-text"><i class="fas fa-user-circle"></i></span>
+                            <input type="text" class="form-control" id="full_name" name="full_name" placeholder="Enter your full name"
+                                   value="{{ form_data.full_name if form_data else '' }}"
+                                   required minlength="2" maxlength="100" pattern="^[A-Za-z\s.'\-]+$">
+                            <div class="invalid-feedback">
+                                Please enter a valid name (2-100 characters). Only letters, spaces, and ' . - are allowed. Numbers are not permitted.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email Address</label>
+                        <div class="input-group has-validation">
+                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                            <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email"
+                                   value="{{ form_data.email if form_data else '' }}"
+                                   required maxlength="255">
+                            <div class="invalid-feedback">
+                                Please enter a valid email address.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="input-group has-validation">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Create a password"
+                                   required minlength="6" pattern="^[A-Za-z\d@$!%*?&.\s]{6,}$">
+                            <span class="input-group-text password-toggle" onclick="togglePassword('password', 'toggleIcon')">
+                                <i class="fas fa-eye" id="toggleIcon"></i>
+                            </span>
+                            <div class="invalid-feedback">
+                                Password must be at least 6 characters long. Allowed characters include letters, numbers, and symbols like @$!%*?&.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-register">
+                        <i class="fas fa-user-plus me-2"></i> Register
+                    </button>
+                </form>
+
+                <div class="login-link animate__animated animate__fadeIn animate__delay-2s">
+                    <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function togglePassword(passwordFieldId, iconId) {
+            const password = document.getElementById(passwordFieldId);
+            const icon = document.getElementById(iconId);
+
+            if (password.type === 'password') {
+                password.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                password.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        // Bootstrap client-side validation
+        (function () {
+          'use strict'
+          var forms = document.querySelectorAll('.needs-validation')
+          Array.prototype.slice.call(forms)
+            .forEach(function (form) {
+              form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                  event.preventDefault()
+                  event.stopPropagation()
+                }
+                form.classList.add('was-validated')
+              }, false)
+            })
+        })()
+    </script>
+</body>
+</html>

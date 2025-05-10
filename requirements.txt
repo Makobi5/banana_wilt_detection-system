@@ -1,0 +1,6 @@
+Flask
+Werkzeug
+supabase
+requests
+python-dotenv
+Pillow

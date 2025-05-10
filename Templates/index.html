@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banana Leaf Classifier</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Banana Leaf Classifier</h1>
+        <p>Upload an image to check if it's a banana leaf</p>
+
+        <form method="post" enctype="multipart/form-data">
+            <div class="upload-box">
+                <input type="file" name="file" id="file" accept="image/*" required>
+                <label for="file">Choose an image...</label>
+            </div>
+            <button type="submit">Classify</button>
+        </form>
+
+        {% if filename %}
+        <div class="result">
+            <div class="image-preview">
+                <img src="{{ url_for('static', filename='uploads/' + filename) }}"
+                     alt="Uploaded leaf image">
+            </div>
+            <div class="prediction">
+                <h3>Prediction Result</h3>
+                <p><strong>Class:</strong> {{ prediction }}</p>
+                <p><strong>Confidence:</strong> {{ confidence }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
+
