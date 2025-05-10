@@ -216,10 +216,8 @@ def analyze_image_with_gemini(image_path):
                 explanation = "The uploaded image does not appear to be a banana leaf."
             elif "WILT-AFFECTED" in text_response:
                 label = "Wilt-Affected"
-                explanation = "The AI analysis indicates symptoms consistent with banana wilt disease."
             elif "HEALTHY" in text_response:
                 label = "Healthy"
-                explanation = "The AI analysis indicates the banana leaf appears healthy."
             else: # Could be a safety block or unexpected response
                 label = "Uncertain"
                 explanation = "The AI analysis could not confidently determine the status or the content was blocked. Please try a clearer image or ensure it's appropriate."
