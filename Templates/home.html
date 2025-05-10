@@ -243,222 +243,236 @@
         </div>
     </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const cameraStreamElement = document.getElementById('camera-stream');
-        const photoCanvasElement = document.getElementById('photo-canvas');
-        const captureBtn = document.getElementById('capture-btn');
-        const cameraErrorElement = document.getElementById('camera-error');
-        const capturedImagePreview = document.getElementById('captured-image-preview');
-        const cameraImageDataInput = document.getElementById('camera_image_data');
-        const cameraFormContainer = document.getElementById('camera-form-container');
-        const analyzeCapturedBtn = document.getElementById('analyze-captured-btn');
+        // Toggle between upload and camera options
+        const uploadOption = document.getElementById('uploadOption');
+        const cameraOption = document.getElementById('cameraOption');
+        const fileUploadSection = document.getElementById('fileUploadSection');
+        const cameraSection = document.getElementById('cameraSection');
+        const imageInput = document.getElementById('image'); // For file input
+        const cameraImageDataInput = document.getElementById('cameraImageData'); // For camera base64 data
+
+        uploadOption.addEventListener('click', function() {
+            this.classList.add('active');
+            cameraOption.classList.remove('active');
+            fileUploadSection.style.display = 'block';
+            cameraSection.style.display = 'none';
+            imageInput.required = true;
+            cameraImageDataInput.value = ''; // Clear camera data if switching
+        });
+
+        cameraOption.addEventListener('click', function() {
+            this.classList.add('active');
+            uploadOption.classList.remove('active');
+            fileUploadSection.style.display = 'none';
+            cameraSection.style.display = 'block';
+            imageInput.required = false; // File input not required if using camera
+            imageInput.value = ''; // Clear file input if switching
+        });
+
+        // Camera functionality
         const cameraModalElement = document.getElementById('cameraModal');
-        const loadingSpinner = document.getElementById('loading-spinner');
-        let currentStream;
-        let cameraModalInstance;
+        const cameraPreview = document.getElementById('cameraPreview');
+        const photoCanvas = document.getElementById('photoCanvas');
+        const captureBtn = document.getElementById('captureBtn');
+        const capturedImageDisplay = document.getElementById('capturedImage'); // The <img> tag to show preview
+        // cameraImageDataInput is already defined above
 
-        // Add SCRIPT_LOAD_TIME for footer year (if not already available from Flask)
-        if (typeof SCRIPT_LOAD_TIME === 'undefined') {
-            const SCRIPT_LOAD_TIME = new Date(); // Fallback if not passed from Flask
-        }
-
+        let currentStream = null;
+        let cameraModalInstance = null; // Initialize later
 
         if (cameraModalElement) {
             cameraModalInstance = new bootstrap.Modal(cameraModalElement);
 
-            // Ensure camera stops when modal is closed by any means
-            cameraModalElement.addEventListener('hidden.bs.modal', stopCameraStream);
-            document.getElementById('camera-modal-close-btn').addEventListener('click', stopCameraStream);
-            document.getElementById('camera-modal-close-footer-btn').addEventListener('click', stopCameraStream);
-
-            cameraModalElement.addEventListener('shown.bs.modal', async () => {
-                cameraErrorElement.style.display = 'none';
-                cameraErrorElement.textContent = '';
-                captureBtn.disabled = true;
-                analyzeCapturedBtn.style.display = 'none'; // Hide analyze button initially
-                capturedImagePreview.style.display = 'none'; // Hide preview initially
+            cameraModalElement.addEventListener('shown.bs.modal', async function() {
+                console.log("Camera modal shown. Attempting to start camera...");
+                captureBtn.disabled = true; // Disable until stream is ready
+                cameraPreview.style.display = 'none'; // Hide video element initially
 
                 try {
-                    if (currentStream) { // Stop any existing stream
+                    if (currentStream) {
+                        console.log("Stopping existing stream...");
                         currentStream.getTracks().forEach(track => track.stop());
                     }
-                    // Try rear camera first, then any camera
-                    const constraints = [
+
+                    const constraintAttempts = [
+                        { video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } },
+                        { video: { facingMode: { exact: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } } },
+                        { video: { facingMode: "user" } },
                         { video: { facingMode: { exact: "environment" } } },
+                        { video: { width: { ideal: 640 }, height: { ideal: 480 } } },
                         { video: true }
                     ];
 
-                    for (const constraint of constraints) {
+                    let streamAcquired = false;
+                    for (const constraint of constraintAttempts) {
                         try {
+                            console.log("Trying constraint:", JSON.stringify(constraint));
                             currentStream = await navigator.mediaDevices.getUserMedia(constraint);
-                            break; // Success
+                            if (currentStream) {
+                                console.log("Stream acquired with constraint:", JSON.stringify(constraint));
+                                streamAcquired = true;
+                                break;
+                            }
                         } catch (e) {
-                            console.warn(`Failed to get camera with constraint: ${JSON.stringify(constraint)}`, e.name, e.message);
+                            console.warn(`Constraint failed: ${JSON.stringify(constraint)} - Error: ${e.name} - ${e.message}`);
                         }
                     }
-                    
-                    if (!currentStream) {
-                        throw new Error("No suitable camera found or permission denied.");
+
+                    if (!streamAcquired || !currentStream) {
+                        console.error("No suitable camera stream acquired after trying all constraints.");
+                        throw new Error("Could not access any camera. Please check permissions and ensure a camera is available.");
                     }
 
-                    cameraStreamElement.srcObject = currentStream;
-                    await cameraStreamElement.play(); // Wait for play to resolve
+                    console.log("Stream acquired. Assigning to video element.");
+                    cameraPreview.srcObject = currentStream;
+                    cameraPreview.style.display = 'block'; // Show video element
+
+                    await new Promise((resolve, reject) => {
+                        cameraPreview.onloadedmetadata = () => {
+                            console.log("Video metadata loaded. Dimensions:", cameraPreview.videoWidth, "x", cameraPreview.videoHeight);
+                            resolve();
+                        };
+                        cameraPreview.onerror = (e) => {
+                            console.error("Error on video element:", e);
+                            reject(new Error("Error loading video stream into element."));
+                        };
+                        setTimeout(() => reject(new Error("Timeout waiting for video metadata.")), 7000);
+                    });
+
+                    console.log("Attempting to play video stream...");
+                    await cameraPreview.play();
+                    console.log("Video stream playing.");
                     captureBtn.disabled = false;
-                    cameraStreamElement.style.display = 'block'; // Ensure video element is visible
 
                 } catch (err) {
-                    console.error("Error accessing camera: ", err);
+                    console.error("Full error in startCamera catch block:", err);
                     let errorMsg = "Could not access camera. ";
                     if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-                        errorMsg += "Please grant camera permission in your browser settings.";
+                        errorMsg += "Please grant camera permission in your browser settings and refresh the page.";
                     } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
                         errorMsg += "No camera found. Please ensure a camera is connected and enabled.";
-                    } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
-                        errorMsg += "Camera might be in use by another application.";
+                    } else if (err.name === "NotReadableError" || err.name === "TrackStartError" || err.name === "OverconstrainedError") {
+                        errorMsg += "Camera might be in use by another app, or requested settings are not supported.";
                     } else {
                         errorMsg += "An unexpected error occurred: " + err.message;
                     }
-                    cameraErrorElement.textContent = errorMsg;
-                    cameraErrorElement.style.display = 'block';
-                    cameraStreamElement.style.display = 'none'; // Hide video element on error
-                    captureBtn.disabled = true;
+                    alert(errorMsg); // Show error to user
+                    if (cameraModalInstance) cameraModalInstance.hide(); // Hide modal on critical error
+                }
+            });
+
+            cameraModalElement.addEventListener('hidden.bs.modal', function() {
+                console.log("Camera modal hidden. Stopping stream.");
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                    cameraPreview.srcObject = null;
+                }
+                currentStream = null;
+            });
+        }
+
+
+        if (captureBtn) {
+            captureBtn.addEventListener('click', function() {
+                if (!currentStream || cameraPreview.readyState < HTMLMediaElement.HAVE_METADATA || cameraPreview.videoWidth === 0) {
+                    alert("Camera stream not ready or active. Please try opening the camera again.");
+                    return;
+                }
+                console.log("Capturing photo...");
+                const videoWidth = cameraPreview.videoWidth;
+                const videoHeight = cameraPreview.videoHeight;
+                photoCanvas.width = videoWidth;
+                photoCanvas.height = videoHeight;
+
+                const context = photoCanvas.getContext('2d');
+                context.drawImage(cameraPreview, 0, 0, videoWidth, videoHeight);
+
+                const imageDataUrl = photoCanvas.toDataURL('image/jpeg', 0.85); // Quality 0.85
+                capturedImageDisplay.src = imageDataUrl;
+                capturedImageDisplay.style.display = 'block';
+                cameraImageDataInput.value = imageDataUrl; // Store base64 data in the hidden input
+
+                console.log("Photo captured. Base64 data stored.");
+
+                if (cameraModalInstance) {
+                    cameraModalInstance.hide(); // This will also trigger the 'hidden.bs.modal' event to stop the stream
                 }
             });
         }
 
 
-        function stopCameraStream() {
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
-                console.log("Camera stream stopped.");
+        function showSpinner() {
+            document.getElementById('spinner').style.display = 'block';
+            const button = document.querySelector('button[type="submit"]');
+            const buttonText = document.getElementById('button-text');
+            const buttonSpinner = document.getElementById('button-spinner');
+
+            if (button) { // Check if button exists
+                button.disabled = true;
+                if (buttonText) buttonText.textContent = 'Processing...';
+                if (buttonSpinner) buttonSpinner.classList.remove('d-none');
             }
-            currentStream = null;
-            if(cameraStreamElement) cameraStreamElement.srcObject = null; // Clear srcObject
+
+            // IMPORTANT: The form submission for camera images needs to be handled differently
+            // The current form with action="/predict" expects a file upload.
+            // If camera is active, you need to decide how to send the cameraImageDataInput.value
+            // to the server. Typically, this would be via an AJAX (fetch) request to a
+            // different endpoint, or you'd modify the form submission to include this data.
+
+            // For now, this function just shows the spinner.
+            // The actual form submission will proceed as per the form's action and method.
         }
 
+        // Add an event listener to the form to handle camera data
+        const uploadForm = document.getElementById('uploadForm');
+        if (uploadForm) {
+            uploadForm.addEventListener('submit', function(event) {
+                showSpinner(); // Show spinner on any submit
 
-        captureBtn.addEventListener('click', () => {
-            if (!currentStream || cameraStreamElement.readyState < HTMLMediaElement.HAVE_METADATA || cameraStreamElement.videoWidth === 0) {
-                cameraErrorElement.textContent = "Camera stream not ready or active. Please try opening the camera again.";
-                cameraErrorElement.style.display = 'block';
-                return;
-            }
-            const context = photoCanvasElement.getContext('2d');
-            photoCanvasElement.width = cameraStreamElement.videoWidth;
-            photoCanvasElement.height = cameraStreamElement.videoHeight;
-            context.drawImage(cameraStreamElement, 0, 0, photoCanvasElement.width, photoCanvasElement.height);
-            
-            const imageDataURL = photoCanvasElement.toDataURL('image/jpeg', 0.85); // Quality 0.85
-            
-            capturedImagePreview.src = imageDataURL;
-            capturedImagePreview.style.display = 'block';
-            cameraImageDataInput.value = imageDataURL;
-            cameraFormContainer.style.display = 'block'; // Show container for analyze button
-            analyzeCapturedBtn.style.display = 'inline-block'; // Show analyze button
-            
-            // Stop stream after capture and hide modal
-            stopCameraStream();
-            if (cameraModalInstance) {
-                cameraModalInstance.hide();
-            }
-        });
+                if (cameraOption.classList.contains('active')) {
+                    // If camera option is active, we need to ensure the camera image data is part of the submission.
+                    // The current <input type="hidden" name="cameraImage" id="cameraImageData">
+                    // will be submitted with the form if it has a value.
 
-        analyzeCapturedBtn.addEventListener('click', async function() {
-            const imageData = cameraImageDataInput.value;
-            if (!imageData) {
-                alert("No image captured to analyze.");
-                return;
-            }
-
-            loadingSpinner.style.display = 'flex';
-            analyzeCapturedBtn.disabled = true;
-            analyzeCapturedBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Analyzing...';
-
-            try {
-                const response = await fetch("{{ url_for('predict_camera') }}", {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Accept': 'text/html, application/json' },
-                    body: JSON.stringify({ image_data: imageData })
-                });
-
-                const contentType = response.headers.get("content-type");
-
-                if (response.ok) {
-                    if (contentType && contentType.includes("text/html")) {
-                        const resultHtml = await response.text();
-                        document.open();
-                        document.write(resultHtml);
-                        document.close();
-                        return; 
-                    } else if (contentType && contentType.includes("application/json")) {
-                         const data = await response.json();
-                         if(data.status === "error_redirect" && data.url) {
-                            window.location.href = data.url; // Follow redirect
-                         } else {
-                            alert(`Error: ${data.error || "An unknown server error occurred."}`);
-                         }
-                    } else {
-                         alert("Received an unexpected response type from the server.");
+                    if (!cameraImageDataInput.value) {
+                        alert("Please capture an image using the camera first.");
+                        event.preventDefault(); // Stop form submission
+                        // Hide spinner logic would be needed here too if we stop submission
+                        document.getElementById('spinner').style.display = 'none';
+                        const button = document.querySelector('button[type="submit"]');
+                        const buttonText = document.getElementById('button-text');
+                        const buttonSpinner = document.getElementById('button-spinner');
+                        if(button) button.disabled = false;
+                        if(buttonText) buttonText.textContent = 'Analyze';
+                        if(buttonSpinner) buttonSpinner.classList.add('d-none');
+                        return;
                     }
+                    // If cameraImageDataInput has a value, it will be submitted with the form.
+                    // The server at /predict needs to be able to handle either 'image' (file)
+                    // or 'cameraImage' (base64 string).
+                    console.log("Submitting form with camera data.");
                 } else {
-                     // Handle HTTP errors (4xx, 5xx)
-                     let errorMsg = `Error ${response.status}: `;
-                     if (contentType && contentType.includes("application/json")) {
-                        const errorJson = await response.json();
-                        errorMsg += errorJson.error || "Server error occurred.";
-                     } else {
-                        errorMsg += await response.text() || "Server error occurred.";
-                     }
-                     alert(errorMsg);
+                    // If upload option is active, ensure file is selected.
+                    // The 'required' attribute on #image input handles this mostly.
+                    if (!imageInput.value) {
+                        alert("Please select an image file to upload.");
+                        event.preventDefault(); // Stop form submission
+                         // Hide spinner logic
+                        document.getElementById('spinner').style.display = 'none';
+                        const button = document.querySelector('button[type="submit"]');
+                        const buttonText = document.getElementById('button-text');
+                        const buttonSpinner = document.getElementById('button-spinner');
+                        if(button) button.disabled = false;
+                        if(buttonText) buttonText.textContent = 'Analyze';
+                        if(buttonSpinner) buttonSpinner.classList.add('d-none');
+                        return;
+                    }
+                    console.log("Submitting form with uploaded file.");
                 }
-            } catch (error) {
-                console.error('Error submitting captured image:', error);
-                alert('An error occurred while sending the image. Please check your connection.');
-            } finally {
-                loadingSpinner.style.display = 'none';
-                analyzeCapturedBtn.disabled = false;
-                analyzeCapturedBtn.innerHTML = '<i class="fas fa-search me-2"></i>Analyze Capture';
-            }
-        });
-
-        function previewImage(input) {
-            const preview = document.getElementById('image-preview');
-            const fileNameDisplay = document.getElementById('file-name');
-            const uploadArea = document.getElementById('upload-area');
-            
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                    fileNameDisplay.textContent = input.files[0].name;
-                    fileNameDisplay.style.display = 'block';
-                    // Adjust upload area to accommodate preview
-                    uploadArea.classList.add('has-preview');
-                    uploadArea.querySelector('h4').style.fontSize = '1.1rem';
-                    uploadArea.querySelector('p').style.display = 'none';
-                    uploadArea.querySelector('.upload-icon').style.fontSize = '2.5rem';
-
-                }
-                reader.readAsDataURL(input.files[0]);
-            } else { // No file selected or selection cleared
-                preview.style.display = 'none';
-                fileNameDisplay.style.display = 'none';
-                uploadArea.classList.remove('has-preview');
-                uploadArea.querySelector('h4').style.fontSize = '';
-                uploadArea.querySelector('p').style.display = '';
-                uploadArea.querySelector('.upload-icon').style.fontSize = '';
-            }
+            });
         }
-        // Add current year to footer dynamically if not passed by Flask
-        document.addEventListener('DOMContentLoaded', () => {
-            const footerYear = document.querySelector('.footer p');
-            if (footerYear && !footerYear.textContent.includes(new Date().getFullYear())) {
-                 footerYear.textContent = `© ${new Date().getFullYear()} Banana Wilt Detection - AI Powered Analysis`;
-            }
-        });
     </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
