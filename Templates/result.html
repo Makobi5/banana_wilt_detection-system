@@ -90,6 +90,47 @@
             font-weight: 600;
             margin-bottom: 8px;
         }
+
+        .recommendations-container {
+            background-color: #e9f5ff; /* Light distinct blue for recommendations */
+            border-left: 4px solid #007bff; /* Primary blue accent */
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-top: 25px; 
+            font-size: 0.95rem;
+        }
+        .recommendations-container h5 {
+            color: #007bff;
+            font-weight: 600;
+            margin-bottom: 12px; /* More space below heading */
+        }
+        .recommendations-container p.recommendation-header {
+            font-weight: 500;
+            color: #212529; /* Darker text for sub-header */
+            margin-bottom: 8px;
+            font-size: 1.05rem;
+        }
+        .recommendations-container ul {
+            padding-left: 20px; /* Indent list items */
+            margin-bottom: 0;
+        }
+        .recommendations-container li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        .recommendations-container li strong {
+            color: #333; /* Slightly emphasize the bolded part */
+        }
+        /* Style for nested UL within recommendations */
+        .recommendations-container ul ul {
+            margin-top: 5px; /* Add a little space before nested list */
+            padding-left: 15px; /* Further indent nested list */
+        }
+         .recommendations-container ul ul li {
+            margin-bottom: 5px; /* Smaller margin for nested items */
+        }
+
+
         .navigation-btns {
             margin-top: 30px;
         }
@@ -194,7 +235,42 @@
                         <p class="mb-0">{{ explanation }}</p>
                     </div>
                 {% endif %}
-                 <!-- Recommendations (Tips) section removed -->
+
+                <!-- Recommendations Section -->
+                {% if label == "Healthy" or label == "Wilt-Affected" %}
+                <div class="recommendations-container mt-4">
+                    <h5><i class="fas fa-lightbulb me-1"></i>Recommendations</h5>
+                    {% if label == "Healthy" %}
+                        <p class="recommendation-header">Expert Guidance to Keep Your Banana Plants Healthy:</p>
+                        <ul>
+                            <li><strong>Regular Monitoring:</strong> Frequently inspect plants for any early signs of stress, pests, or disease. Early detection is key.</li>
+                            <li><strong>Proper Nutrition:</strong> Ensure your plants receive balanced fertilization. Conduct soil tests periodically to understand nutrient needs.</li>
+                            <li><strong>Adequate & Smart Watering:</strong> Maintain consistent soil moisture, especially during dry periods, but avoid waterlogging which can promote root diseases. Consider drip irrigation for efficiency.</li>
+                            <li><strong>Good Field Sanitation:</strong> Regularly remove old, dead, or diseased leaves and plant debris. Dispose of them away from the plantation, preferably by burning (if permitted) or deep burial.</li>
+                            <li><strong>Weed Control:</strong> Keep the plantation free of weeds as they compete for nutrients and water, and can harbor pests/diseases.</li>
+                            <li><strong>Resistant Varieties:</strong> When replanting or expanding, consider using certified disease-free planting materials and look for banana cultivars known for resistance to common local diseases.</li>
+                            <li><strong>Soil Health Management:</strong> Promote good soil structure and health through practices like cover cropping or adding organic matter.</li>
+                        </ul>
+                    {% elif label == "Wilt-Affected" %}
+                        <p class="recommendation-header">Measures to Manage Banana Wilt and Prevent Further Spread:</p>
+                        <ul>
+                            <li><strong>Remove and Destroy Infected Plants:</strong> Carefully and completely dig up the entire infected plant, including its base and any new shoots growing from the ground. Chop the stem and base into small pieces to help them dry out and break down quickly. If local rules allow, burn these chopped plant parts. Otherwise, bury them deep (at least 3 feet down) far away from other banana plants and water. <strong>Important:</strong> Do NOT add infected plant parts to your compost pile.</li>
+                            <li><strong>Clean Your Tools:</strong> Right after working with infected plants, thoroughly clean and disinfect all tools (like machetes, shovels). You can use a strong bleach solution (mix 1 part regular household bleach with 4 parts water) or heat the metal parts of your tools in a fire.</li>
+                            <li><strong>Prevent Disease Spread:</strong> Be careful not to move soil, planting materials, water, tools, or even dirt on your shoes from infected areas to healthy areas. Clean your tools and footwear before going from one part of your farm to another.</li>
+                            <li><strong>Manage Soil in Affected Spots:</strong> Do not plant new bananas in the exact spot where an infected plant was removed for at least 1 to 2 years. This helps reduce the disease in the soil. Make sure the soil in this area drains well. You can also try covering the affected soil with clear plastic during hot, sunny months (this is called soil solarization) – the heat can help kill the disease. Adding good quality compost can also improve soil health before you plant other types of crops (not bananas) there.</li>
+                            <li><strong>Reduce Risk from Insects:</strong> Insects visiting banana flowers can sometimes spread diseases. To lower this risk:
+                                <ul>
+                                    <li>Promptly remove the male flower bud (the large purplish, tear-drop shaped part at the end of the fruit stalk) after the last set of bananas has formed.</li>
+                                    <li>Consider covering the developing fruit bunches with a bag. This can also protect them from pests.</li>
+                                </ul>
+                            </li>
+                            <li><strong>Isolate Infected Areas:</strong> If you can, create a clear boundary or empty space around the infected part of your plantation. Avoid farming or letting water flow from the infected side to the healthy side across this boundary.</li>
+                            <li><strong>Seek Local Advice:</strong> Talk to your local agricultural office or a plant disease specialist. They can give you advice tailored to your area, help confirm the specific type of wilt if needed, and suggest the best ways to manage it. They might also know about banana varieties that are more resistant to wilt.</li>
+                        </ul>
+                    {% endif %}
+                </div>
+                {% endif %}
+                 <!-- End of Recommendations Section -->
             {% endif %}
 
             <div class="navigation-btns text-center mt-4">
